@@ -1,6 +1,6 @@
 services:
   gateway:
-    image: ghcr.io/microservices-benchmarking-11-kiop-2023/java-mono-rest:latest
+    image: ghcr.io/microservices-benchmarking-11-kiop-2023/java-mono:latest
     build:
       dockerfile: Dockerfile
       context: .
