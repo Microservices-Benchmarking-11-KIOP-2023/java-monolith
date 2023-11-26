@@ -20,7 +20,10 @@ import java.util.stream.Collectors;
 @Service
 public class GeoService {
     private static final double MAX_SEARCH_RADIUS = 10;
-    private static final int MAX_SEARCH_RESULTS = 1000000000;
+    private static final int MAX_SEARCH_RESULTS = Integer.MAX_VALUE;
+    private static final double EARTH_RADIUS = 6371;
+    private static final double RADIANS_CONST = Math.PI / 180;
+
 
     private final Map<String, GeoPoint> geoIndex = new HashMap<>();
 
@@ -45,8 +48,7 @@ public class GeoService {
         center.setLon(lon);
 
         return geoIndex.values().stream()
-                .filter(point -> distance(point, center) <= MAX_SEARCH_RADIUS)
-                .sorted(Comparator.comparingDouble(p -> distance(p, center)))
+                .sorted(Comparator.comparingDouble(p -> haversineDistance(p, center)))
                 .limit(MAX_SEARCH_RESULTS)
                 .map(GeoPoint::getHotelId)
                 .collect(Collectors.toList());
@@ -58,9 +60,16 @@ public class GeoService {
         return org.apache.commons.io.IOUtils.toString(reader);
     }
 
-    private double distance(GeoPoint p1, GeoPoint p2) {
-        double dx = p1.getLon() - p2.getLon();
-        double dy = p1.getLat() - p2.getLat();
-        return Math.sqrt(dx * dx + dy * dy);
+    private double haversineDistance(GeoPoint p1, GeoPoint p2) {
+        double latDistance = Math.toRadians(p2.getLat() - p1.getLat());
+        double lonDistance = Math.toRadians(p2.getLon() - p1.getLon());
+
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(p1.getLat())) * Math.cos(Math.toRadians(p2.getLat()))
+                * Math.sin(lonDistance / 2) * Math.sin(lonDistance / 2);
+
+        double centralAngle = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return EARTH_RADIUS * centralAngle;
     }
 }
