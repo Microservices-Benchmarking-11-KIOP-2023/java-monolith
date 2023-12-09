@@ -11,10 +11,7 @@ import pb.java.microservices.monolith.App.entity.GeoPoint;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,9 +45,10 @@ public class GeoService {
         center.setLon(lon);
 
         return geoIndex.values().stream()
-                .sorted(Comparator.comparingDouble(p -> haversineDistance(p, center)))
-                .limit(MAX_SEARCH_RESULTS)
-                .map(GeoPoint::getHotelId)
+                .map(p -> new AbstractMap.SimpleEntry<>(p, haversineDistance(p, center)))
+                .filter(entry -> entry.getValue() <= MAX_SEARCH_RADIUS)
+                .sorted(Comparator.comparingDouble(Map.Entry::getValue))
+                .map(entry -> entry.getKey().getHotelId())
                 .collect(Collectors.toList());
     }
 
