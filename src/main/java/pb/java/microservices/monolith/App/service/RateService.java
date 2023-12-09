@@ -47,7 +47,11 @@ public class RateService {
     private void loadRateTableFromJsonFile(String filename) throws IOException {
         String jsonData = readJsonFile(filename);
         List<RatePlan> ratePlanList = parseJsonToRatePlanList(jsonData);
-        this.rateTable = ratePlanList.stream().collect(Collectors.toMap(rp -> new Stay(rp.getHotelId(), rp.getInDate(), rp.getOutDate()), Function.identity()));
+        this.rateTable = ratePlanList.stream()
+                .collect(Collectors.toMap(
+                        rp -> new Stay(rp.getHotelId(), rp.getInDate(), rp.getOutDate()),
+                        Function.identity(),
+                        (existing, replacement) -> existing)); // in case of duplicates in file
     }
 
     private List<RatePlan> parseJsonToRatePlanList(String jsonData) {

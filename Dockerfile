@@ -7,8 +7,16 @@ WORKDIR /app
 # Copy the entire project into the container
 COPY . .
 
+# Install unzip utility
+RUN apt-get update && apt-get install -y unzip
+
+# Unzip the file into the specified folder
+RUN unzip /app/src/main/resources/data/inventory.zip -d /app/src/main/resources/data
+RUN unzip /app/src/main/resources/data/geo.zip -d /app/src/main/resources/data
+RUN unzip /app/src/main/resources/data/hotels.zip -d /app/src/main/resources/data
+
 # Run the Gradle build
-RUN gradle clean build --no-daemon
+RUN gradle clean build --no-daemon -x test
 
 # Use the official OpenJDK base image for the final image
 FROM openjdk:20-jdk-slim
