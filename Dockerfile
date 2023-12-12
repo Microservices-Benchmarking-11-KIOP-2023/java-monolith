@@ -21,11 +21,14 @@ RUN gradle clean build --no-daemon -x test
 # Use the official OpenJDK base image for the final image
 FROM openjdk:20-jdk-slim
 
+# Set an environment variable for Java options (heap size can be set via this in docker-compose)
+ENV JAVA_OPTS=""
+
 # Set the working directory inside the container
 WORKDIR /app
 
 # Copy only the built JAR file from the build image into the final image
 COPY --from=build /app/build/libs/*.jar app.jar
 
-# Specify the command to run on container start
-CMD ["java", "-jar", "app.jar"]
+# Specify the command to run on container start using the environment variable for JVM options
+CMD java $JAVA_OPTS -jar app.jar

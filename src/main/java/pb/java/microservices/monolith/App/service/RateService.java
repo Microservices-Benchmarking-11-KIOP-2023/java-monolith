@@ -3,6 +3,7 @@ package pb.java.microservices.monolith.App.service;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
@@ -19,17 +20,28 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
 public class RateService {
+    private static final Logger LOGGER = Logger.getLogger(RateService.class.getName());
     private final ResourceLoader resourceLoader;
     private Map<Stay, RatePlan> rateTable = new HashMap<>();
 
     @Autowired
     public RateService(ResourceLoader resourceLoader) throws IOException {
         this.resourceLoader = resourceLoader;
-        loadRateTableFromJsonFile("data/inventory.json");
+    }
+
+    @PostConstruct
+    public void init() {
+        try {
+            loadRateTableFromJsonFile("data/inventory.json");
+            LOGGER.info("Inventory loaded successfully");
+        } catch (IOException e) {
+            LOGGER.severe("Failed to load inventory: " + e.getMessage());
+        }
     }
 
     public List<RatePlan> getRates(List<String> hotelIds, String inDate, String outDate) {
