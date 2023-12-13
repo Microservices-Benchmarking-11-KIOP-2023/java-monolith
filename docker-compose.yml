@@ -5,6 +5,6 @@ services:
       dockerfile: Dockerfile
       context: .
     environment:
-      - JAVA_OPTS=-Xmx1024m
+      - JAVA_OPTS=-Xmx2048m
     ports:
       - "5000:8080"
