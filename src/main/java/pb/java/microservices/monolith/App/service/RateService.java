@@ -1,24 +1,21 @@
 package pb.java.microservices.monolith.App.service;
 
-import com.google.gson.Gson;
-import com.google.gson.stream.JsonReader;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import pb.java.microservices.monolith.App.entity.RatePlan;
 import pb.java.microservices.monolith.App.entity.Stay;
 
-import jakarta.annotation.PostConstruct;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
 @Service
 public class RateService {
@@ -30,17 +27,16 @@ public class RateService {
     public RateService(ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
         System.out.println("Updated Vers");
-    }
 
-    @PostConstruct
-    public void init() {
         try {
+            System.out.println("STARTED LOADING DATA");
             loadRateTableFromJsonFile("data/inventory.json");
             LOGGER.info("Inventory loaded successfully");
         } catch (IOException e) {
             LOGGER.severe("Failed to load inventory: " + e.getMessage());
         }
     }
+
 
     public List<RatePlan> getRates(List<String> hotelIds, String inDate, String outDate) {
         List<RatePlan> results = new ArrayList<>();
@@ -55,17 +51,22 @@ public class RateService {
     }
 
     private void loadRateTableFromJsonFile(String filename) throws IOException {
-        String path = resourceLoader.getResource("classpath:" + filename).getFile().getPath();
-
-        try (JsonReader reader = new JsonReader(new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8))) {
-            Gson gson = new Gson();
-            reader.beginArray();
-            while (reader.hasNext()) {
-                RatePlan ratePlan = gson.fromJson(reader, RatePlan.class);
+        System.out.println("1");
+        Resource resource = resourceLoader.getResource("classpath:" + filename);
+        System.out.println("2");
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        System.out.println("3");
+        try {
+            List<RatePlan> ratePlans = mapper.readValue(resource.getInputStream(), new TypeReference<List<RatePlan>>(){});
+            for (RatePlan ratePlan : ratePlans) {
                 Stay stay = new Stay(ratePlan.getHotelId(), ratePlan.getInDate(), ratePlan.getOutDate());
                 this.rateTable.put(stay, ratePlan);
             }
-            reader.endArray();
+            System.out.println("FINISHED LOADING DATA");
+        } catch (Exception e) {
+            System.out.println("ERROR LOADING DATA");
+            e.printStackTrace(); // Important for debugging
         }
     }
 }
