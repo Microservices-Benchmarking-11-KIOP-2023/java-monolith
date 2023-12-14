@@ -11,6 +11,7 @@ import pb.java.microservices.monolith.App.entity.RatePlan;
 import pb.java.microservices.monolith.App.entity.Stay;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,7 +27,7 @@ public class RateService {
     @Autowired
     public RateService(ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
-        System.out.println("Updated Vers");
+        System.out.println("Updated Vers 2");
 
         try {
             System.out.println("STARTED LOADING DATA");
@@ -57,8 +58,8 @@ public class RateService {
         ObjectMapper mapper = new ObjectMapper();
         mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         System.out.println("3");
-        try {
-            List<RatePlan> ratePlans = mapper.readValue(resource.getInputStream(), new TypeReference<List<RatePlan>>(){});
+        try (InputStream is = resource.getInputStream()) {
+            List<RatePlan> ratePlans = mapper.readValue(is, new TypeReference<List<RatePlan>>() {});
             for (RatePlan ratePlan : ratePlans) {
                 Stay stay = new Stay(ratePlan.getHotelId(), ratePlan.getInDate(), ratePlan.getOutDate());
                 this.rateTable.put(stay, ratePlan);
@@ -69,4 +70,5 @@ public class RateService {
             e.printStackTrace(); // Important for debugging
         }
     }
+
 }
