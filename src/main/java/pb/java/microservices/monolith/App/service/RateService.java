@@ -1,17 +1,15 @@
 package pb.java.microservices.monolith.App.service;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParser;
-import jakarta.annotation.PostConstruct;
+import com.google.gson.Gson;
+import com.google.gson.stream.JsonReader;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
-import org.springframework.util.FileCopyUtils;
 import pb.java.microservices.monolith.App.entity.RatePlan;
 import pb.java.microservices.monolith.App.entity.Stay;
 
+import jakarta.annotation.PostConstruct;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -19,7 +17,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
@@ -30,8 +27,9 @@ public class RateService {
     private Map<Stay, RatePlan> rateTable = new HashMap<>();
 
     @Autowired
-    public RateService(ResourceLoader resourceLoader) throws IOException {
+    public RateService(ResourceLoader resourceLoader) {
         this.resourceLoader = resourceLoader;
+        System.out.println("Updated Vers");
     }
 
     @PostConstruct
@@ -57,33 +55,17 @@ public class RateService {
     }
 
     private void loadRateTableFromJsonFile(String filename) throws IOException {
-        String jsonData = readJsonFile(filename);
-        List<RatePlan> ratePlanList = parseJsonToRatePlanList(jsonData);
-        this.rateTable = ratePlanList.stream()
-                .collect(Collectors.toMap(
-                        rp -> new Stay(rp.getHotelId(), rp.getInDate(), rp.getOutDate()),
-                        Function.identity(),
-                        (existing, replacement) -> existing)); // in case of duplicates in file
-    }
+        String path = resourceLoader.getResource("classpath:" + filename).getFile().getPath();
 
-    private List<RatePlan> parseJsonToRatePlanList(String jsonData) {
-        List<RatePlan> ratePlanList = new ArrayList<>();
-        JsonArray jsonArray = new JsonParser().parse(jsonData).getAsJsonArray();
-
-        for (JsonElement jsonElement : jsonArray) {
-            RatePlan ratePlan = new RatePlan();
-            ratePlan.setHotelId(jsonElement.getAsJsonObject().get("hotelId").getAsString());
-            ratePlan.setInDate(jsonElement.getAsJsonObject().get("inDate").getAsString());
-            ratePlan.setOutDate(jsonElement.getAsJsonObject().get("outDate").getAsString());
-            ratePlanList.add(ratePlan);
+        try (JsonReader reader = new JsonReader(new InputStreamReader(new FileInputStream(path), StandardCharsets.UTF_8))) {
+            Gson gson = new Gson();
+            reader.beginArray();
+            while (reader.hasNext()) {
+                RatePlan ratePlan = gson.fromJson(reader, RatePlan.class);
+                Stay stay = new Stay(ratePlan.getHotelId(), ratePlan.getInDate(), ratePlan.getOutDate());
+                this.rateTable.put(stay, ratePlan);
+            }
+            reader.endArray();
         }
-
-        return ratePlanList;
-    }
-
-    private String readJsonFile(String filename) throws IOException {
-        Resource resource = resourceLoader.getResource("classpath:" + filename);
-        InputStreamReader reader = new InputStreamReader(resource.getInputStream(), StandardCharsets.UTF_8);
-        return FileCopyUtils.copyToString(reader);
     }
 }
